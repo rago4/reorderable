@@ -1,18 +1,53 @@
-import { useEffect, useRef } from "react";
+import type { FormEvent, MouseEvent, PointerEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import { Item } from "../types";
-import { IconBars, IconClose } from "./icons";
+import { IconButton } from "./icon-button";
+import { IconBars, IconClose, IconPencil } from "./icons";
+import { Input } from "./input";
 
 type Props = {
   value: Item;
   reorder: boolean;
-  onChange: (id: string) => void;
+  onCheck: (id: string) => void;
+  onEdit: (id: string, title: string) => void;
   onDelete: (id: string) => void;
 };
 
-export function ListItem({ value, reorder, onChange, onDelete }: Props) {
+export function ListItem({ value, reorder, onCheck, onEdit, onDelete }: Props) {
+  const [edit, setEdit] = useState(false);
   const ref = useRef<HTMLElement>(null);
   const controls = useDragControls();
+  const formId = `edit-form-${value.id}`;
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const target = event.target as typeof event.target & {
+      id: { value: string };
+      title: { value: string };
+    };
+    const id = target.id.value;
+    const title = target.title.value.trim();
+
+    if (!title) return;
+
+    onEdit(id, title);
+    setEdit(false);
+  };
+
+  const handleDrag = (event: PointerEvent<HTMLButtonElement>) => {
+    controls.start(event);
+  };
+
+  const handleEdit = (
+    event: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>
+  ) => {
+    if (!edit) {
+      event.preventDefault();
+      setEdit(true);
+    }
+  };
 
   // TODO: remove this workaround once it's resolved - https://github.com/framer/motion/issues/1597
   useEffect(() => {
@@ -43,28 +78,44 @@ export function ListItem({ value, reorder, onChange, onDelete }: Props) {
           type="checkbox"
           checked={value.completed}
           disabled={reorder}
-          onChange={() => onChange(value.id)}
+          onChange={() => onCheck(value.id)}
         />
-        <span className="select-none text-slate-700">{value.title}</span>
+        {edit ? (
+          <form id={formId} onSubmit={handleSubmit}>
+            <input type="hidden" name="id" defaultValue={value.id} />
+            <Input
+              small
+              type="text"
+              name="title"
+              defaultValue={value.title}
+              required
+            />
+          </form>
+        ) : (
+          <span className="select-none text-slate-700">{value.title}</span>
+        )}
       </label>
       {reorder ? (
-        <div
-          className="flex h-6 w-6 cursor-grab items-center justify-center rounded bg-slate-200 hover:bg-slate-300 active:cursor-grabbing"
-          onPointerDown={(e) => {
-            controls.start(e);
-          }}
+        <IconButton
+          className="cursor-grab active:cursor-grabbing"
+          onPointerDown={handleDrag}
         >
           <IconBars />
-        </div>
+        </IconButton>
       ) : (
-        <button
-          className="flex h-6 w-6 items-center justify-center rounded bg-red-100 text-red-500 hover:bg-red-200"
-          onClick={() => {
-            onDelete(value.id);
-          }}
-        >
-          <IconClose />
-        </button>
+        <div className="flex space-x-1">
+          <IconButton
+            theme="blue"
+            form={formId}
+            type="submit"
+            onClick={handleEdit}
+          >
+            <IconPencil />
+          </IconButton>
+          <IconButton theme="red" onClick={() => onDelete(value.id)}>
+            <IconClose />
+          </IconButton>
+        </div>
       )}
     </Reorder.Item>
   );

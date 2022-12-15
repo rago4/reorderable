@@ -1,6 +1,8 @@
-import { FormEvent, useState } from "react";
+import type { FormEvent } from "react";
+import { useState } from "react";
 import { Reorder } from "framer-motion";
 import { Button } from "../components/button";
+import { Input } from "../components/input";
 import { ListItem } from "../components/list-item";
 import { Item } from "../types";
 import { LOCAL_STORAGE, uuid } from "../utils";
@@ -57,11 +59,17 @@ export function Reorderable() {
     }
   };
 
-  const handleChange = (id: string) => {
+  const handleCheck = (id: string) => {
     saveItems(
       items.map((item) =>
         item.id === id ? { ...item, completed: !item.completed } : item
       )
+    );
+  };
+
+  const handleEdit = (id: string, title: string) => {
+    saveItems(
+      items.map((item) => (item.id === id ? { ...item, title } : item))
     );
   };
 
@@ -72,8 +80,8 @@ export function Reorderable() {
   return (
     <>
       <form className="mb-2" onSubmit={handleSubmit}>
-        <input
-          className="w-full rounded border border-slate-200 px-3 py-1.5 text-slate-700"
+        <Input
+          className="w-full"
           type="text"
           name="items"
           placeholder="Separate items with ; to add many"
@@ -101,7 +109,8 @@ export function Reorderable() {
                 key={item.id}
                 value={item}
                 reorder={reorder}
-                onChange={handleChange}
+                onCheck={handleCheck}
+                onEdit={handleEdit}
                 onDelete={handleDelete}
               />
             ))}
